@@ -4,7 +4,6 @@ import spotify.domain.Playlist;
 import spotify.domain.Track;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -67,7 +66,9 @@ public class Main {
         LocalDate date1 = LocalDate.of(2000, 1, 1);
         LocalDate date2 = LocalDate.of(2050, 12, 30);
         List<Playlist> playlistByDates = spotify.findByDates(date1, date2);
-        System.out.println("Listas que tengan canciones entre");
+        System.out.println("Listas que tengan canciones entre: " +
+                date1.getDayOfMonth() + "-" + date1.getMonthValue() + "-" + date1.getYear() + " y " +
+                date2.getDayOfMonth() + "-" + date2.getMonthValue() + "-" + date2.getYear());
         playlistByDates.forEach(System.out::println);
     }
 }
