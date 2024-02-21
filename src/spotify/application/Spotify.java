@@ -2,6 +2,7 @@ package spotify.application;
 
 
 import spotify.domain.Playlist;
+import spotify.records.TopArtists;
 import spotify.domain.Track;
 
 import java.time.LocalDate;
@@ -21,9 +22,9 @@ public interface Spotify {
     Double getAverageDuration(Playlist playlist);
     Set<String> getGenres (Playlist playlist);
     SortedSet<String> getSortedGenres(Playlist playlist);
-    List<String> getTopArtists(Playlist playlist); //artistas mas repetidos en las playlists
+    List<TopArtists> getTopArtists(Playlist playlist); //artistas mas repetidos en las playlists
     List<Playlist> findByDates(LocalDate start, LocalDate end);
-    List<Playlist> findByDatesByTrackDate(LocalDate start, LocalDate end, String artista);// devuelve las playlist que tengan esa cancion
+    List<Playlist> findByDatesByTrackDate(LocalDate start, LocalDate end, String artista);// devuelve las playlist que tengan canciones con ese artista
 
 
 }

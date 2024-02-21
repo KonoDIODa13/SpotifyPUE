@@ -1,10 +1,14 @@
 package spotify.application;
 
 import spotify.domain.Playlist;
+import spotify.records.TopArtists;
 import spotify.domain.Track;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.*;
 
 
 public class SpotifyImpl implements Spotify {
@@ -71,69 +75,75 @@ public class SpotifyImpl implements Spotify {
 
     @Override
     public Track findLongestTrack(Playlist playlist) {
-        return map.get(playlist).stream().max(Comparator.comparing(Track::getSeconds)).orElse(null);
+        if (!map.containsKey(playlist))
+            throw new IllegalArgumentException("La playlist" + playlist.getId() + " no existe en Spotify.");
+        return map.get(playlist).stream()
+                .max(Comparator.comparing(Track::getSeconds))
+                .orElse(null);
     }
 
     @Override
     public Track findShortestTrack(Playlist playlist) {
-        return map.get(playlist).stream().min(Comparator.comparing(Track::getSeconds)).orElse(null);
+        if (!map.containsKey(playlist))
+            throw new IllegalArgumentException("La playlist" + playlist.getId() + " no existe en Spotify.");
+        return map.get(playlist).stream()
+                .min(Comparator.comparing(Track::getSeconds))
+                .orElse(null);
     }
 
     @Override
     public Double getAverageDuration(Playlist playlist) {
-        double totalTrackDuration = 0;
-        for (Track track : map.get(playlist)) {
-            totalTrackDuration += track.getSeconds();
-        }
-        return totalTrackDuration / map.get(playlist).size();
+        if (!map.containsKey(playlist))
+            throw new IllegalArgumentException("La playlist" + playlist.getId() + " no existe en Spotify.");
+        return map.get(playlist).stream()
+                .mapToDouble(Track::getSeconds).average()
+                .orElse(0);
     }
 
     @Override
     public Set<String> getGenres(Playlist playlist) {
-        Set<String> genres = new HashSet<>();
-        for (Track track : map.get(playlist)) {
-            genres.addAll(track.getGenres());
-        }
-        return genres;
+        if (!map.containsKey(playlist))
+            throw new IllegalArgumentException("La playlist" + playlist.getId() + " no existe en Spotify.");
+        return getTracks(playlist)
+                .stream()
+                .flatMap(track -> track.getGenres().stream())
+                .collect(Collectors.toSet());
     }
 
     @Override
     public SortedSet<String> getSortedGenres(Playlist playlist) {
-        SortedSet<String> genres = new TreeSet<>();
-        for (Track track : getTracks(playlist)) {
-            genres.addAll(track.getGenres());
-        }
-        return genres;
+        if (!map.containsKey(playlist))
+            throw new IllegalArgumentException("La playlist" + playlist.getId() + " no existe en Spotify.");
+        return new TreeSet<>(getGenres(playlist));
     }
 
     @Override
-    public List<String> getTopArtists(Playlist playlist) {
+    public List<TopArtists> getTopArtists(Playlist playlist) {
         if (!map.containsKey(playlist))
             throw new IllegalArgumentException("La playlist" + playlist.getId() + " no existe en Spotify.");
-        Map<String, Integer> artistsAndNum = new HashMap<>();
-        int contMax = 1;
-        for (Track track : map.get(playlist)) {
-            for (String artist : track.getArtists()) {
-                int contArtist = 1;
-                if (!artistsAndNum.containsKey(artist)) {
-                    artistsAndNum.putIfAbsent(artist, contArtist);
-                } else {
-                    contArtist += artistsAndNum.get(artist);
-                    artistsAndNum.replace(artist, contArtist);
-                    if (contMax < contArtist) {
-                        contMax = contArtist;
-                    }
-                }
-            }
-        }
-        //System.out.println(artistsAndNum.entrySet());
-        List<String> topArtist = new ArrayList<>();
-        for (String artist : artistsAndNum.keySet()) {
-            if (artistsAndNum.get(artist) == contMax) {
-                topArtist.add(artist);
-            }
-        }
-        return topArtist;
+        /*
+        return getTracks(playlist)
+                .stream()
+                .flatMap(track -> track.getArtists().stream())
+                .collect(groupingBy(artist -> artist, counting()))
+                .entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                //.sorted(Collections.reverseOrder(Map.Entry.comparingByValue()) es lo mismo que lo de arriba
+                .map(Map.Entry::getKey)
+                .limit(5)
+                .collect(Collectors.toList()):
+         */
+        return getTracks(playlist)
+                .stream()
+                .flatMap(track -> track.getArtists().stream())
+                .collect(groupingBy(artist -> artist, counting()))
+                .entrySet()
+                .stream()
+                .map(entry -> new TopArtists(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparing(TopArtists::ocurrence).reversed())
+                .limit(5)
+                .toList();
     }
 
     @Override
@@ -156,5 +166,12 @@ public class SpotifyImpl implements Spotify {
                         .anyMatch(track -> (track.getReleaseDate().isAfter(start) && track.getReleaseDate().isBefore(end) && track.getArtists().contains(artista))))
                 .map(Map.Entry::getKey)
                 .toList();
+    }
+
+    private List<String> getArtist(Playlist playlist) {
+        return getTracks(playlist)
+                .stream()
+                .flatMap(track -> track.getArtists().stream())
+                .collect(Collectors.toList());
     }
 }
